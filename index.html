@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>ピョコピョコ体重記録</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Kaisei+Decol:wght@400;700&family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap');
+:root{
+  --purple:#7c5cbf;--purple-light:#a98de0;--purple-pale:#ede8f9;
+  --green:#5bbf7c;--green-light:#8de0a9;
+  --bg:#f4f0fc;--card:#fff;--ink:#2d2040;--muted:#9488b0;
+  --shadow:rgba(124,92,191,0.13);--gold:#f5c842;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{background:var(--bg);font-family:'M PLUS Rounded 1c',sans-serif;min-height:100vh;max-width:430px;margin:0 auto;color:var(--ink);}
+body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle,rgba(124,92,191,0.07) 1.5px,transparent 1.5px);background-size:22px 22px;pointer-events:none;z-index:0;}
+.app{position:relative;z-index:1;padding-bottom:110px;}
+
+/* HEADER */
+.header{background:linear-gradient(135deg,var(--purple) 0%,var(--purple-light) 60%,var(--green-light) 100%);padding:16px 20px 32px;position:relative;overflow:hidden;}
+.header::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:28px;background:var(--bg);border-radius:28px 28px 0 0;}
+.header-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+.app-name{font-family:'Kaisei Decol',serif;font-size:12px;color:rgba(255,255,255,0.8);letter-spacing:0.12em;}
+.streak-badge{background:rgba(255,255,255,0.22);border-radius:20px;padding:5px 12px;font-size:12px;color:#fff;font-weight:700;display:flex;align-items:center;gap:4px;}
+
+/* RANK BAR */
+.rank-bar{background:rgba(255,255,255,0.15);border-radius:12px;padding:8px 14px;margin-bottom:12px;}
+.rank-bar-top{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+.rank-label{font-size:10px;color:rgba(255,255,255,0.7);font-weight:700;}
+.rank-name-h{font-size:15px;font-weight:800;color:#fff;flex:1;}
+.rank-next{font-size:10px;color:rgba(255,255,255,0.65);font-weight:700;}
+.rank-prog-wrap{height:5px;background:rgba(255,255,255,0.2);border-radius:10px;overflow:hidden;}
+.rank-prog-fill{height:100%;border-radius:10px;background:linear-gradient(90deg,#fff6,#fff);transition:width 0.8s cubic-bezier(0.34,1.56,0.64,1);}
+
+/* FROG */
+.frog-area{display:flex;align-items:flex-end;gap:12px;}
+.frog-wrap{flex-shrink:0;width:74px;height:74px;}
+.frog-svg{width:74px;height:74px;animation:pyoko 1.8s ease-in-out infinite;transform-origin:bottom center;filter:drop-shadow(0 4px 8px rgba(91,191,124,0.4));}
+.frog-svg.sad{animation:sad 2s ease-in-out infinite;}
+.frog-svg.excited{animation:excited 0.5s ease-in-out infinite;}
+@keyframes pyoko{0%,100%{transform:translateY(0) rotate(0deg);}25%{transform:translateY(-10px) rotate(-3deg);}50%{transform:translateY(-14px) rotate(2deg);}75%{transform:translateY(-5px) rotate(-1deg);}}
+@keyframes sad{0%,100%{transform:translateY(0) rotate(-2deg);}50%{transform:translateY(-3px) rotate(2deg);}}
+@keyframes excited{0%,100%{transform:translateY(0) scale(1);}50%{transform:translateY(-16px) scale(1.08);}}
+.speech-bubble{background:#fff;border-radius:18px 18px 18px 4px;padding:11px 15px;flex:1;box-shadow:0 4px 16px var(--shadow);position:relative;margin-bottom:8px;}
+.speech-bubble::before{content:'';position:absolute;left:-8px;bottom:14px;border:8px solid transparent;border-right-color:#fff;border-left:0;}
+.speech-name{font-size:9px;color:var(--green);font-weight:800;letter-spacing:0.05em;margin-bottom:3px;}
+.speech-text{font-size:13px;line-height:1.6;color:var(--ink);font-weight:700;}
+
+/* TABS */
+.tabs{display:flex;gap:5px;padding:14px 16px 10px;}
+.tab{flex:1;padding:8px 2px;border-radius:13px;border:none;background:var(--card);color:var(--muted);font-family:'M PLUS Rounded 1c',sans-serif;font-size:10px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px var(--shadow);transition:all 0.2s;display:flex;flex-direction:column;align-items:center;gap:2px;}
+.tab.active{background:linear-gradient(135deg,var(--purple),var(--purple-light));color:#fff;box-shadow:0 4px 12px rgba(124,92,191,0.35);transform:translateY(-2px);}
+.tab-icon{font-size:16px;}
+
+/* PANELS */
+.panel{display:none;padding:0 16px;}.panel.active{display:block;}
+
+/* CARD */
+.card{background:var(--card);border-radius:20px;padding:18px;box-shadow:0 4px 16px var(--shadow);margin-bottom:14px;}
+.card-title{font-size:12px;font-weight:800;color:var(--muted);letter-spacing:0.08em;margin-bottom:14px;display:flex;align-items:center;gap:6px;}
+.input-group{margin-bottom:13px;}
+.input-label{font-size:12px;font-weight:700;color:var(--purple);margin-bottom:6px;display:block;}
+.input-field{width:100%;padding:12px 16px;border-radius:12px;border:2px solid var(--purple-pale);font-family:'M PLUS Rounded 1c',sans-serif;font-size:16px;font-weight:700;color:var(--ink);background:var(--bg);outline:none;transition:border-color 0.2s;}
+.input-field:focus{border-color:var(--purple-light);}
+.date-display{width:100%;padding:12px 16px;border-radius:12px;background:var(--purple-pale);font-size:15px;font-weight:700;color:var(--purple);text-align:center;}
+.save-btn{width:100%;padding:15px;border-radius:16px;border:none;background:linear-gradient(135deg,var(--green),var(--green-light));color:#fff;font-family:'M PLUS Rounded 1c',sans-serif;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 6px 0 #3d9e5a;transition:transform 0.1s,box-shadow 0.1s;letter-spacing:0.04em;}
+.save-btn:active{transform:translateY(4px);box-shadow:0 2px 0 #3d9e5a;}
+
+/* GOAL CARD */
+.goal-card{background:linear-gradient(135deg,#fff8e8,#fff);border:2px solid var(--gold);border-radius:20px;padding:18px;box-shadow:0 4px 16px rgba(245,200,66,0.18);margin-bottom:14px;}
+.goal-row{display:flex;align-items:center;gap:10px;}
+.goal-display{flex:1;font-size:22px;font-weight:800;color:var(--purple);}
+.goal-display span{font-size:13px;color:var(--muted);font-weight:700;}
+.goal-remaining{font-size:12px;font-weight:700;padding:6px 12px;border-radius:20px;white-space:nowrap;}
+.goal-remaining.ok{background:#e8f9ee;color:var(--green);}
+.goal-remaining.notyet{background:var(--purple-pale);color:var(--purple);}
+.goal-remaining.achieved{background:linear-gradient(135deg,#ffd700,#ffec6e);color:#7a5000;}
+.goal-progress-wrap{height:8px;background:#f0eaff;border-radius:10px;overflow:hidden;margin-top:10px;}
+.goal-progress-fill{height:100%;border-radius:10px;background:linear-gradient(90deg,var(--purple),var(--purple-light));transition:width 0.8s cubic-bezier(0.34,1.56,0.64,1);}
+.goal-edit-btn{background:none;border:none;font-size:18px;cursor:pointer;padding:4px;}
+.goal-input-row{display:flex;gap:8px;margin-top:10px;}
+.goal-set-btn{padding:10px 18px;border-radius:12px;border:none;background:var(--gold);color:#7a5000;font-family:'M PLUS Rounded 1c',sans-serif;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap;}
+
+/* RECENT */
+.latest-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--purple-pale);}
+.latest-row:last-child{border-bottom:none;}
+.latest-date{font-size:11px;color:var(--muted);font-weight:700;}
+.latest-val{font-size:17px;font-weight:800;color:var(--purple);}
+.latest-diff{font-size:11px;font-weight:700;}
+.diff-up{color:#e05c7c;}.diff-down{color:var(--green);}.diff-same{color:var(--muted);}
+.no-data{text-align:center;padding:30px 20px;color:var(--muted);font-weight:700;font-size:13px;line-height:1.8;}
+
+/* RANK TIMELINE */
+.rank-timeline{display:flex;flex-direction:column;}
+.rank-step{display:flex;align-items:center;gap:12px;padding:9px 0;position:relative;}
+.rank-step:not(:last-child)::after{content:'';position:absolute;left:19px;top:46px;width:2px;height:calc(100% - 12px);background:var(--purple-pale);}
+.rank-dot{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;position:relative;z-index:1;border:3px solid var(--purple-pale);background:#fff;}
+.rank-dot.done{background:linear-gradient(135deg,var(--purple),var(--purple-light));border-color:var(--purple);font-size:14px;color:#fff;}
+.rank-dot.current{background:linear-gradient(135deg,var(--green),var(--green-light));border-color:var(--green);box-shadow:0 0 0 4px rgba(91,191,124,0.25);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 4px rgba(91,191,124,0.25);}50%{box-shadow:0 0 0 8px rgba(91,191,124,0.1);}}
+.rank-info{flex:1;}
+.rank-title-t{font-size:14px;font-weight:800;color:var(--muted);}
+.rank-title-t.done{color:var(--purple);}.rank-title-t.current{color:var(--green);}
+.rank-days-t{font-size:10px;color:var(--muted);font-weight:700;margin-top:1px;}
+.cur-tag{background:var(--green);color:#fff;border-radius:8px;padding:3px 8px;font-size:10px;font-weight:800;}
+
+/* BADGE */
+.badge-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.badge-item{background:var(--card);border-radius:16px;padding:16px 10px;text-align:center;box-shadow:0 4px 12px var(--shadow);position:relative;}
+.badge-item.locked{opacity:0.35;filter:grayscale(0.7);}
+.badge-item.unlocked{border:2px solid var(--green-light);}
+.badge-item.unlocked::after{content:'✓';position:absolute;top:7px;right:9px;font-size:10px;color:var(--green);font-weight:800;}
+.badge-icon{font-size:34px;margin-bottom:6px;display:block;}
+.badge-name{font-size:11px;font-weight:800;color:var(--ink);margin-bottom:2px;}
+.badge-cond{font-size:10px;color:var(--muted);font-weight:700;}
+
+/* TROPHY */
+.section-title{font-size:12px;font-weight:800;color:var(--muted);letter-spacing:0.08em;padding:0 4px 10px;}
+.trophy-list{display:flex;flex-direction:column;gap:10px;margin-bottom:14px;}
+.trophy-item{background:var(--card);border-radius:16px;padding:14px 16px;display:flex;align-items:center;gap:14px;box-shadow:0 4px 12px var(--shadow);}
+.trophy-item.locked{opacity:0.38;filter:grayscale(0.7);}
+.trophy-item.unlocked{border-left:4px solid var(--gold);background:linear-gradient(to right,#fffbea,#fff);}
+.trophy-icon{font-size:28px;flex-shrink:0;}
+.trophy-info{flex:1;}
+.trophy-name{font-size:13px;font-weight:800;color:var(--ink);}
+.trophy-cond{font-size:11px;color:var(--muted);font-weight:700;margin-top:2px;}
+
+/* TOAST */
+.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--ink);color:#fff;padding:12px 24px;border-radius:30px;font-size:13px;font-weight:700;z-index:999;transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1);white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,0.2);max-width:88vw;text-align:center;}
+.toast.show{transform:translateX(-50%) translateY(0);}
+
+/* EDIT MODAL */
+.edit-overlay{position:fixed;inset:0;background:rgba(44,20,80,0.7);z-index:300;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.25s;}
+.edit-overlay.show{opacity:1;pointer-events:all;}
+.edit-sheet{background:#fff;border-radius:24px 24px 0 0;padding:24px 20px 40px;width:100%;max-width:430px;transform:translateY(100%);transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);}
+.edit-overlay.show .edit-sheet{transform:translateY(0);}
+.edit-handle{width:36px;height:4px;background:#ddd;border-radius:4px;margin:0 auto 20px;}
+.edit-title{font-size:15px;font-weight:800;color:var(--ink);margin-bottom:16px;text-align:center;}
+.edit-date-label{font-size:12px;font-weight:800;color:var(--muted);text-align:center;margin-bottom:14px;}
+.edit-row{display:flex;gap:10px;margin-bottom:12px;}
+.edit-del-btn{width:100%;padding:13px;border-radius:14px;border:2px solid #fde;background:#fff;color:#e05c7c;font-family:'M PLUS Rounded 1c',sans-serif;font-size:14px;font-weight:800;cursor:pointer;margin-top:4px;}
+.edit-save-btn{flex:1;padding:13px;border-radius:14px;border:none;background:linear-gradient(135deg,var(--purple),var(--purple-light));color:#fff;font-family:'M PLUS Rounded 1c',sans-serif;font-size:14px;font-weight:800;cursor:pointer;}
+.edit-cancel-btn{padding:13px 18px;border-radius:14px;border:2px solid var(--purple-pale);background:#fff;color:var(--muted);font-family:'M PLUS Rounded 1c',sans-serif;font-size:14px;font-weight:800;cursor:pointer;}
+
+/* LEVEL UP / ACHIEVEMENT OVERLAY */
+.lu-overlay{position:fixed;inset:0;background:rgba(44,20,80,0.82);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.3s;}
+.lu-overlay.show{opacity:1;pointer-events:all;}
+.lu-box{background:#fff;border-radius:28px;padding:30px 36px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.35);animation:luPop 0.5s cubic-bezier(0.34,1.56,0.64,1);max-width:320px;width:90vw;}
+@keyframes luPop{0%{transform:scale(0.5);}100%{transform:scale(1);}}
+.lu-emoji{font-size:58px;display:block;margin-bottom:8px;}
+.lu-label{font-size:11px;color:var(--muted);font-weight:800;letter-spacing:0.1em;margin-bottom:6px;}
+.lu-title{font-size:24px;font-weight:800;color:var(--purple);margin-bottom:4px;line-height:1.3;}
+.lu-sub{font-size:13px;color:var(--muted);font-weight:700;margin-bottom:18px;line-height:1.5;}
+.lu-btn{padding:12px 32px;border-radius:50px;border:none;background:var(--purple);color:#fff;font-family:'M PLUS Rounded 1c',sans-serif;font-size:15px;font-weight:800;cursor:pointer;}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- OVERLAY -->
+<div class="lu-overlay" id="luOverlay">
+  <div class="lu-box">
+    <span class="lu-emoji" id="luEmoji">🎊</span>
+    <div class="lu-label" id="luLabel">✨ ご昇進、おめでとうございますぴょこ</div>
+    <div class="lu-title" id="luTitle">正社員に昇進！</div>
+    <div class="lu-sub" id="luSub">継続は力。わたくし、感服いたしましたぴょこ</div>
+    <button class="lu-btn" onclick="document.getElementById('luOverlay').classList.remove('show')">ありがとうぴょこ✨</button>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-top">
+    <div class="app-name">🐸 PYOKOPYOKO DIET</div>
+    <div class="streak-badge">🔥<span id="streakNum">0</span>日連続</div>
+  </div>
+  <div class="rank-bar">
+    <div class="rank-bar-top">
+      <span class="rank-label">役職</span>
+      <span class="rank-name-h" id="rankNameH">アルバイト</span>
+      <span class="rank-next" id="rankNextH"></span>
+    </div>
+    <div class="rank-prog-wrap"><div class="rank-prog-fill" id="rankProgFill" style="width:0%"></div></div>
+  </div>
+  <div class="frog-area">
+    <div class="frog-wrap">
+      <svg class="frog-svg" id="frogSvg" viewBox="0 0 100 105" xmlns="http://www.w3.org/2000/svg"><g id="frogG"></g></svg>
+    </div>
+    <div class="speech-bubble">
+      <div class="speech-name">カ・エルデ・ピョコピョコ</div>
+      <div class="speech-text" id="frogSpeech">ぴょこ！今日も記録するぴょこ〜🌿</div>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('record')"><span class="tab-icon">📝</span>記録</button>
+  <button class="tab" onclick="switchTab('graph')"><span class="tab-icon">📈</span>グラフ</button>
+  <button class="tab" onclick="switchTab('rank')"><span class="tab-icon">🏢</span>役職</button>
+  <button class="tab" onclick="switchTab('badge')"><span class="tab-icon">🏆</span>実績</button>
+</div>
+
+<!-- RECORD PANEL -->
+<div class="panel active" id="panel-record">
+
+  <!-- GOAL CARD -->
+  <div class="goal-card" id="goalCard">
+    <div class="card-title" style="margin-bottom:10px;">🎯 目標体重</div>
+    <div class="goal-row">
+      <div class="goal-display" id="goalDisplay">未設定 <span>kg</span></div>
+      <div class="goal-remaining" id="goalRemaining" style="display:none"></div>
+      <button class="goal-edit-btn" id="goalEditBtn" onclick="toggleGoalEdit()" title="編集">✏️</button>
+    </div>
+    <div class="goal-progress-wrap" id="goalProgressWrap" style="display:none">
+      <div class="goal-progress-fill" id="goalProgressFill" style="width:0%"></div>
+    </div>
+    <div class="goal-input-row" id="goalInputRow" style="display:none">
+      <input class="input-field" type="number" id="goalInput" placeholder="例：52.0" step="0.1" min="20" max="300" style="font-size:15px;padding:10px 14px;">
+      <button class="goal-set-btn" onclick="setGoal()">設定ぴょこ！</button>
+    </div>
+  </div>
+
+  <!-- RECORD CARD -->
+  <div class="card">
+    <div class="card-title">📅 今日の記録</div>
+    <div class="input-group"><span class="input-label">日付</span><div class="date-display" id="todayDate"></div></div>
+    <div class="input-group"><span class="input-label">⚖️ 体重 (kg)</span><input class="input-field" type="number" id="weightInput" placeholder="例：55.0" step="0.1" min="20" max="300"></div>
+    <div class="input-group"><span class="input-label">📝 メモ（任意）</span><input class="input-field" type="text" id="memoInput" placeholder="今日の調子など…"></div>
+    <button class="save-btn" onclick="saveRecord()">ぴょこっと記録する！🐸</button>
+  </div>
+
+  <!-- RECENT -->
+  <div class="card">
+    <div class="card-title">📋 最近の記録</div>
+    <div id="recentList"><div class="no-data">まだ記録がないぴょこ〜</div></div>
+  </div>
+</div>
+
+<!-- GRAPH PANEL -->
+<div class="panel" id="panel-graph">
+  <div class="card">
+    <div class="card-title">📈 体重グラフ（直近30日）</div>
+    <div style="position:relative;width:100%;">
+      <canvas id="weightChart"></canvas>
+      <div class="no-data" id="graphNoData">記録が2件以上あると<br>グラフが出るぴょこ〜🌿</div>
+    </div>
+  </div>
+  <div class="card" id="statsCard" style="display:none">
+    <div class="card-title">📊 統計</div>
+    <div id="statsContent"></div>
+  </div>
+</div>
+
+<!-- RANK PANEL -->
+<div class="panel" id="panel-rank">
+  <div class="card">
+    <div class="card-title">🏢 カ・エルデの出世ロード</div>
+    <div class="rank-timeline" id="rankTimeline"></div>
+  </div>
+</div>
+
+<!-- BADGE PANEL -->
+<div class="panel" id="panel-badge">
+  <div class="section-title">🥇 バッジ</div>
+  <div class="badge-grid" id="badgeGrid"></div>
+  <div class="section-title">🏆 トロフィー</div>
+  <div class="trophy-list" id="trophyList"></div>
+</div>
+
+</div><!-- /app -->
+<div class="toast" id="toast"></div>
+
+<!-- EDIT MODAL -->
+<div class="edit-overlay" id="editOverlay" onclick="closeEdit(event)">
+  <div class="edit-sheet">
+    <div class="edit-handle"></div>
+    <div class="edit-title">✏️ 記録を修正するぴょこ</div>
+    <div class="edit-date-label" id="editDateLabel"></div>
+    <div class="input-group"><span class="input-label">⚖️ 体重 (kg)</span><input class="input-field" type="number" id="editWeightInput" step="0.1" min="20" max="300"></div>
+    <div class="input-group"><span class="input-label">📝 メモ</span><input class="input-field" type="text" id="editMemoInput" placeholder="メモ（任意）"></div>
+    <div class="edit-row">
+      <button class="edit-cancel-btn" onclick="closeEdit()">キャンセル</button>
+      <button class="edit-save-btn" onclick="saveEdit()">保存する！</button>
+    </div>
+    <button class="edit-del-btn" onclick="deleteRecord()">🗑️ この日の記録を削除する</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+// ======== RANKS ========
+const RANKS=[
+  {name:'アルバイト', days:0,   hat:'none',    col:'#7ce89a'},
+  {name:'契約社員',  days:3,   hat:'cap',     col:'#5bbf7c'},
+  {name:'正社員',    days:7,   hat:'tie',     col:'#4aaa6a'},
+  {name:'主任',      days:14,  hat:'glasses', col:'#7c5cbf'},
+  {name:'係長',      days:21,  hat:'badge',   col:'#6b4db0'},
+  {name:'課長',      days:30,  hat:'crownS',  col:'#a98de0'},
+  {name:'部長',      days:50,  hat:'crownM',  col:'#e0a020'},
+  {name:'所長',      days:75,  hat:'crownG',  col:'#e08020'},
+  {name:'常務',      days:100, hat:'topHat',  col:'#e05060'},
+  {name:'専務',      days:150, hat:'diamond', col:'#c030a0'},
+  {name:'超偉い人',  days:200, hat:'rainbow', col:'#ff6b6b'},
+];
+function getRankIdx(s){let i=0;for(let j=0;j<RANKS.length;j++){if(s>=RANKS[j].days)i=j;else break;}return i;}
+function getRankProg(s){const i=getRankIdx(s);if(i>=RANKS.length-1)return 100;return Math.round((s-RANKS[i].days)/(RANKS[i+1].days-RANKS[i].days)*100);}
+
+// ======== FROG SVG ========
+function lighter(h,a){const n=parseInt(h.slice(1),16);const r=(n>>16),g=(n>>8&0xff),b=(n&0xff);return`rgb(${Math.min(255,r+a)},${Math.min(255,g+a)},${Math.min(255,b+a)})`;}
+function darker(h,a){const n=parseInt(h.slice(1),16);const r=(n>>16),g=(n>>8&0xff),b=(n&0xff);return`rgb(${Math.max(0,r-a)},${Math.max(0,g-a)},${Math.max(0,b-a)})`;}
+
+function buildFrog(streak){
+  const rank=RANKS[getRankIdx(streak)];
+  const c=rank.col,lc=lighter(c,40),dc=darker(c,30);
+  const mood=window._mood||'normal';
+  let eyes='',brows='',mouth='',extras='';
+  if(mood==='sad'){
+    eyes=`<circle cx="33" cy="31" r="5.5" fill="#1a1a2e"/><circle cx="69" cy="31" r="5.5" fill="#1a1a2e"/><circle cx="34" cy="30" r="2" fill="white"/><circle cx="70" cy="30" r="2" fill="white"/>`;
+    brows=`<line x1="27" y1="22" x2="37" y2="25" stroke="#555" stroke-width="2.5" stroke-linecap="round"/><line x1="63" y1="25" x2="73" y2="22" stroke="#555" stroke-width="2.5" stroke-linecap="round"/>`;
+    mouth=`<path d="M43 58 Q50 53 57 58" stroke="${dc}" stroke-width="2.5" fill="none" stroke-linecap="round"/>`;
+    extras=`<ellipse cx="37" cy="38" rx="2" ry="3" fill="#aad4ff" opacity="0.9"/>`;
+  } else if(mood==='excited'){
+    eyes=`<ellipse cx="33" cy="30" rx="5.5" ry="6.5" fill="#1a1a2e"/><ellipse cx="69" cy="30" rx="5.5" ry="6.5" fill="#1a1a2e"/><circle cx="34" cy="28" r="2" fill="white"/><circle cx="70" cy="28" r="2" fill="white"/>`;
+    brows=`<line x1="27" y1="22" x2="37" y2="20" stroke="#555" stroke-width="2.5" stroke-linecap="round"/><line x1="63" y1="20" x2="73" y2="22" stroke="#555" stroke-width="2.5" stroke-linecap="round"/>`;
+    mouth=`<path d="M40 54 Q50 64 60 54" stroke="${dc}" stroke-width="2.5" fill="none" stroke-linecap="round"/>`;
+    extras=`<text x="14" y="22" font-size="10">✨</text><text x="72" y="22" font-size="10">✨</text>`;
+  } else {
+    eyes=`<circle cx="33" cy="31" r="5.5" fill="#1a1a2e"/><circle cx="69" cy="31" r="5.5" fill="#1a1a2e"/><circle cx="35" cy="29" r="2" fill="white"/><circle cx="71" cy="29" r="2" fill="white"/>`;
+    mouth=`<path d="M43 55 Q50 61 57 55" stroke="${dc}" stroke-width="2.5" fill="none" stroke-linecap="round"/>`;
+    extras=`<circle cx="46" cy="48" r="2" fill="${dc}" opacity="0.5"/><circle cx="54" cy="48" r="2" fill="${dc}" opacity="0.5"/>`;
+  }
+  let hat='';
+  const H=rank.hat;
+  if(H==='cap') hat=`<ellipse cx="50" cy="19" rx="24" ry="8" fill="#222"/><rect x="28" y="11" width="44" height="12" rx="5" fill="#333"/><ellipse cx="50" cy="11" rx="10" ry="4" fill="#444"/>`;
+  else if(H==='tie') hat=`<polygon points="50,66 45,76 50,96 55,76" fill="#e03050"/><rect x="44" y="63" width="12" height="6" rx="3" fill="#c02040"/>`;
+  else if(H==='glasses') hat=`<ellipse cx="50" cy="19" rx="22" ry="7" fill="#7c5cbf"/><rect x="30" y="12" width="40" height="10" rx="5" fill="#9b7de0"/><circle cx="33" cy="33" r="7" stroke="#333" stroke-width="2.5" fill="rgba(200,220,255,0.3)"/><circle cx="67" cy="33" r="7" stroke="#333" stroke-width="2.5" fill="rgba(200,220,255,0.3)"/><line x1="40" y1="33" x2="60" y2="33" stroke="#333" stroke-width="2"/>`;
+  else if(H==='badge') hat=`<ellipse cx="50" cy="19" rx="22" ry="7" fill="#4a90d9"/><rect x="30" y="12" width="40" height="10" rx="5" fill="#6aabf0"/><rect x="41" y="68" width="18" height="12" rx="3" fill="#f5c842"/><text x="50" y="77" font-size="6.5" fill="#333" text-anchor="middle" font-weight="bold" font-family="sans-serif">係長</text>`;
+  else if(H==='crownS') hat=`<polygon points="50,2 41,15 29,8 33,22 67,22 71,8 59,15" fill="#f5c842" stroke="#e0a020" stroke-width="1"/><ellipse cx="50" cy="22" rx="22" ry="5" fill="#f5c842"/><circle cx="50" cy="5" r="3" fill="#e05c7c"/>`;
+  else if(H==='crownM') hat=`<polygon points="50,0 39,15 25,7 30,23 70,23 75,7 61,15" fill="#f5c842" stroke="#c89000" stroke-width="1.5"/><ellipse cx="50" cy="23" rx="24" ry="6" fill="#f5c842"/><circle cx="50" cy="3" r="4" fill="#5bbf7c"/><circle cx="32" cy="9" r="3" fill="#7c5cbf"/><circle cx="68" cy="9" r="3" fill="#7c5cbf"/>`;
+  else if(H==='crownG') hat=`<polygon points="50,-2 37,15 21,5 27,25 73,25 79,5 63,15" fill="#ffd700" stroke="#b8860b" stroke-width="2"/><ellipse cx="50" cy="25" rx="26" ry="7" fill="#ffd700"/><circle cx="50" cy="1" r="5" fill="#e05c7c"/><circle cx="30" cy="9" r="4" fill="#7c5cbf"/><circle cx="70" cy="9" r="4" fill="#7c5cbf"/><circle cx="38" cy="2" r="3" fill="#5bbf7c"/><circle cx="62" cy="2" r="3" fill="#5bbf7c"/>`;
+  else if(H==='topHat') hat=`<rect x="33" y="0" width="34" height="20" rx="3" fill="#111"/><ellipse cx="50" cy="20" rx="26" ry="6" fill="#222"/><rect x="33" y="16" width="34" height="4" fill="#c02040"/>`;
+  else if(H==='diamond') hat=`<polygon points="50,0 39,15 25,7 30,23 70,23 75,7 61,15" fill="#b8ecff" stroke="#60c0ff" stroke-width="1.5"/><ellipse cx="50" cy="23" rx="24" ry="6" fill="#c8f0ff"/><circle cx="50" cy="3" r="4" fill="white" opacity="0.9"/><text x="18" y="16" font-size="10">✨</text><text x="70" y="16" font-size="10">✨</text>`;
+  else if(H==='rainbow') hat=`<defs><linearGradient id="rg" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#ff6b6b"/><stop offset="33%" stop-color="#ffd93d"/><stop offset="66%" stop-color="#6bcb77"/><stop offset="100%" stop-color="#c77dff"/></linearGradient></defs><ellipse cx="50" cy="10" rx="30" ry="9" fill="none" stroke="url(#rg)" stroke-width="6"/><text x="12" y="10" font-size="11">⭐</text><text x="72" y="10" font-size="11">⭐</text><text x="40" y="-1" font-size="12">👑</text>`;
+
+  document.getElementById('frogG').innerHTML=`
+    <circle cx="32" cy="30" r="13" fill="${lc}"/><circle cx="68" cy="30" r="13" fill="${lc}"/>
+    <ellipse cx="50" cy="65" rx="36" ry="32" fill="${c}"/>
+    <ellipse cx="50" cy="73" rx="21" ry="18" fill="#d4f5de"/>
+    <circle cx="32" cy="30" r="9" fill="white"/><circle cx="68" cy="30" r="9" fill="white"/>
+    ${brows}${eyes}${mouth}${extras}
+    <ellipse cx="18" cy="70" rx="8" ry="10" fill="${c}" transform="rotate(-20,18,70)"/>
+    <ellipse cx="11" cy="80" rx="7" ry="5" fill="${lc}" transform="rotate(-30,11,80)"/>
+    <ellipse cx="82" cy="70" rx="8" ry="10" fill="${c}" transform="rotate(20,82,70)"/>
+    <ellipse cx="89" cy="80" rx="7" ry="5" fill="${lc}" transform="rotate(30,89,80)"/>
+    <ellipse cx="34" cy="96" rx="13" ry="6" fill="${lc}"/>
+    <ellipse cx="66" cy="96" rx="13" ry="6" fill="${lc}"/>
+    ${hat}`;
+}
+
+// ======== DATA ========
+function loadRecords(){try{return JSON.parse(localStorage.getItem('pyoko_v2')||'[]');}catch(e){return[];}}
+function saveRecords(a){localStorage.setItem('pyoko_v2',JSON.stringify(a));}
+function loadGoal(){const v=localStorage.getItem('pyoko_goal');return v?parseFloat(v):null;}
+function saveGoal(v){if(v)localStorage.setItem('pyoko_goal',v);else localStorage.removeItem('pyoko_goal');}
+function loadStartDate(){return localStorage.getItem('pyoko_start')||null;}
+function saveStartDate(d){localStorage.setItem('pyoko_start',d);}
+
+// ======== STREAK ========
+function calcStreak(records){
+  if(!records.length)return 0;
+  const s=[...records].sort((a,b)=>b.date.localeCompare(a.date));
+  const today=new Date().toISOString().slice(0,10);
+  let n=0,cur=today;
+  for(const r of s){if(r.date===cur){n++;const d=new Date(cur);d.setDate(d.getDate()-1);cur=d.toISOString().slice(0,10);}else if(r.date<cur)break;}
+  return n;
+}
+
+// ======== SPEECH ========
+const SP={
+  none:["本日もご記録を、ぴょこ🌿","わたくしカ・エルデ、いつでも最高ぴょこ。さあ、ご一緒に🌿","今日という日も、丁寧に参りましょうぴょこ✨"],
+  same:["体重をキープとは…なんと優雅な安定感ぴょこ✨","ぶれないお姿、まさに一流の証ぴょこ🌿","現状維持も立派な成果。わたくし、感服いたしましたぴょこ"],
+  down:["減量成功ですわぴょこ…！これはわたくしが応援した成果に違いありませんぴょこ🎉","なんと素晴らしい…！ぴょこ、思わず涙がにじみますぴょこ🌟","お見事ぴょこ。この調子で、颯爽と参りましょうぴょこ✨"],
+  up:["増えてしまいましたか…ぴょこ😢わたくし、少しだけ心が痛みますぴょこ……","ぴょこ……😢でも、明日があります。気品を持って参りましょうぴょこ","これはただの一時のこと。わたくしは信じておりますぴょこ……😭"],
+  goal:["目標まであとわずか…！ぴょこ、胸が高鳴りますぴょこ🎯","もう少しですわぴょこ。ご自身を信じてくださいぴょこ✨"],
+  s3:["3日連続とは…やはりお方ぴょこ。わたくしの予感通りですぴょこ💚"],
+  s7:["1週間連続ぴょこ…！これは偉業ですわぴょこ。感動いたしましたぴょこ🎉"],
+  s14:["2週間。もはやこれは習慣ではなく、美学ぴょこ✨"],
+  s30:["30日連続…ぴょこ…言葉を失いますぴょこ。本当に、本当に素晴らしいぴょこ🏆"],
+  s50:["50日。わたくし、もう語彙がございませんぴょこ……ただただ、尊いぴょこ👑"],
+};
+function pick(a){return a[Math.floor(Math.random()*a.length)];}
+function getFrogSpeech(records){
+  const streak=calcStreak(records);
+  window._mood='normal';
+  if(streak>=50)return SP.s50[0];
+  if(streak>=30)return SP.s30[0];
+  if(streak>=14)return SP.s14[0];
+  if(streak>=7)return SP.s7[0];
+  if(streak>=3)return SP.s3[0];
+  if(!records.length)return pick(SP.none);
+  // check goal proximity
+  const goal=loadGoal();
+  const sorted=[...records].sort((a,b)=>a.date.localeCompare(b.date));
+  if(goal&&sorted.length){
+    const cur=sorted[sorted.length-1].weight;
+    if(cur>goal&&cur-goal<=1){window._mood='excited';return pick(SP.goal);}
+  }
+  if(sorted.length<2)return pick(SP.none);
+  const diff=sorted[sorted.length-1].weight-sorted[sorted.length-2].weight;
+  if(Math.abs(diff)<0.05)return pick(SP.same);
+  if(diff<0){window._mood='excited';return pick(SP.down);}
+  window._mood='sad';return pick(SP.up);
+}
+
+// ======== GOAL UI ========
+function toggleGoalEdit(){
+  const row=document.getElementById('goalInputRow');
+  const isOpen=row.style.display!=='none';
+  row.style.display=isOpen?'none':'flex';
+  if(!isOpen){const g=loadGoal();if(g)document.getElementById('goalInput').value=g;}
+}
+function setGoal(){
+  const v=parseFloat(document.getElementById('goalInput').value);
+  if(isNaN(v)||v<20||v>300){showToast('目標体重を正しく入力するぴょこ！');return;}
+  saveGoal(v);
+  document.getElementById('goalInputRow').style.display='none';
+  renderGoal();
+  showToast('目標設定したぴょこ〜！🎯');
+}
+function renderGoal(){
+  const goal=loadGoal();
+  const records=loadRecords();
+  const sorted=[...records].sort((a,b)=>a.date.localeCompare(b.date));
+  const cur=sorted.length?sorted[sorted.length-1].weight:null;
+  const gd=document.getElementById('goalDisplay');
+  const gr=document.getElementById('goalRemaining');
+  const gpw=document.getElementById('goalProgressWrap');
+  const gpf=document.getElementById('goalProgressFill');
+  if(!goal){gd.innerHTML='未設定 <span>目標なし</span>';gr.style.display='none';gpw.style.display='none';return;}
+  gd.innerHTML=`${goal} <span>kg</span>`;
+  if(cur!==null){
+    const diff=(cur-goal).toFixed(1);
+    gr.style.display='block';
+    if(cur<=goal){
+      gr.textContent='🎉 達成！';gr.className='goal-remaining achieved';
+    } else {
+      gr.textContent=`あと ${diff}kg`;gr.className='goal-remaining notyet';
+    }
+    // progress: from start weight to goal
+    const startRec=records.find(r=>r.date===(records.map(x=>x.date).sort()[0]));
+    const startW=startRec?startRec.weight:cur;
+    const total=startW-goal;
+    const done=startW-cur;
+    const pct=total>0?Math.min(100,Math.max(0,Math.round(done/total*100))):cur<=goal?100:0;
+    gpw.style.display='block';
+    gpf.style.width=pct+'%';
+  } else {
+    gr.style.display='none';gpw.style.display='none';
+  }
+}
+
+// ======== BADGES ========
+const BADGES=[
+  {icon:'🐣',name:'はじめの一歩',cond:'初回記録',      check:r=>r.length>=1},
+  {icon:'🌱',name:'7回記録',     cond:'7回記録達成',   check:r=>r.length>=7},
+  {icon:'🌳',name:'30回記録',    cond:'30回記録達成',  check:r=>r.length>=30},
+  {icon:'🔥',name:'3日連続',     cond:'3日連続記録',   check:r=>calcStreak(r)>=3},
+  {icon:'⚡',name:'7日連続',     cond:'7日連続記録',   check:r=>calcStreak(r)>=7},
+  {icon:'💎',name:'30日連続',    cond:'30日連続記録',  check:r=>calcStreak(r)>=30},
+  {icon:'💧',name:'-1kgバッジ',  cond:'1kg減量達成',   check:r=>r.length>=2&&r[0].weight-Math.min(...r.map(x=>x.weight))>=1},
+  {icon:'🌊',name:'-3kgバッジ',  cond:'3kg減量達成',   check:r=>r.length>=2&&r[0].weight-Math.min(...r.map(x=>x.weight))>=3},
+  {icon:'🎯',name:'-5kgバッジ',  cond:'5kg減量達成',   check:r=>r.length>=2&&r[0].weight-Math.min(...r.map(x=>x.weight))>=5},
+  {icon:'🌈',name:'100回記録',   cond:'100回記録達成', check:r=>r.length>=100},
+];
+
+// ======== TROPHIES ========
+const TROPHIES=[
+  {icon:'🏅',name:'初記録トロフィー',    cond:'はじめて記録した！',
+    check:(r,g,sd)=>r.length>=1},
+  {icon:'🥉',name:'7日連続トロフィー',   cond:'7日連続記録達成！',
+    check:(r)=>calcStreak(r)>=7},
+  {icon:'🥈',name:'30日連続トロフィー',  cond:'30日連続記録達成！',
+    check:(r)=>calcStreak(r)>=30},
+  {icon:'🥇',name:'100日連続トロフィー', cond:'100日連続記録達成！',
+    check:(r)=>calcStreak(r)>=100},
+  {icon:'🌸',name:'桜トロフィー',        cond:'1ヶ月以上継続記録！',
+    check:(r,g,sd)=>{
+      if(!sd||r.length<1)return false;
+      const start=new Date(sd),now=new Date();
+      return(now-start)/(1000*60*60*24)>=30;
+    }},
+  {icon:'🎂',name:'記念日トロフィー',    cond:'記録開始から1年！',
+    check:(r,g,sd)=>{
+      if(!sd)return false;
+      const start=new Date(sd),now=new Date();
+      return(now-start)/(1000*60*60*24)>=365;
+    }},
+  {icon:'⚖️',name:'目標達成トロフィー', cond:'目標体重に到達！',
+    check:(r,g)=>{
+      if(!g||r.length<1)return false;
+      const sorted=[...r].sort((a,b)=>a.date.localeCompare(b.date));
+      return sorted[sorted.length-1].weight<=g;
+    }},
+];
+
+// ======== CHART ========
+let chartInst=null;
+function renderChart(records){
+  const sorted=[...records].sort((a,b)=>a.date.localeCompare(b.date)).slice(-30);
+  const nd=document.getElementById('graphNoData');
+  const cv=document.getElementById('weightChart');
+  const sc=document.getElementById('statsCard');
+  if(sorted.length<2){cv.style.display='none';nd.style.display='block';sc.style.display='none';return;}
+  cv.style.display='block';nd.style.display='none';sc.style.display='block';
+  if(chartInst)chartInst.destroy();
+  const data=sorted.map(r=>r.weight);
+  const goal=loadGoal();
+  const datasets=[{data,borderColor:'#7c5cbf',backgroundColor:'rgba(124,92,191,0.08)',borderWidth:3,pointBackgroundColor:'#7ce89a',pointBorderColor:'#5bbf7c',pointBorderWidth:2,pointRadius:5,fill:true,tension:0.4,label:'体重'}];
+  if(goal)datasets.push({data:sorted.map(()=>goal),borderColor:'#f5c842',borderWidth:2,borderDash:[6,4],pointRadius:0,fill:false,label:'目標',tension:0});
+  chartInst=new Chart(cv,{
+    type:'line',data:{labels:sorted.map(r=>r.date.slice(5)),datasets},
+    options:{responsive:true,plugins:{legend:{display:!!goal,labels:{font:{family:'M PLUS Rounded 1c',weight:'700'},boxWidth:20}}},
+      scales:{y:{grid:{color:'rgba(124,92,191,0.08)'},ticks:{font:{family:'M PLUS Rounded 1c',weight:'700'},color:'#9488b0'}},
+        x:{grid:{display:false},ticks:{font:{family:'M PLUS Rounded 1c',weight:'700'},color:'#9488b0',maxRotation:45,maxTicksLimit:8}}}}
+  });
+  const mn=Math.min(...data),mx=Math.max(...data),df=(data[0]-data[data.length-1]).toFixed(1);
+  document.getElementById('statsContent').innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;text-align:center;">
+    <div><div style="font-size:10px;color:var(--muted);font-weight:700;">最小</div><div style="font-size:18px;font-weight:800;color:var(--green)">${mn}kg</div></div>
+    <div><div style="font-size:10px;color:var(--muted);font-weight:700;">最大</div><div style="font-size:18px;font-weight:800;color:#e05c7c">${mx}kg</div></div>
+    <div><div style="font-size:10px;color:var(--muted);font-weight:700;">増減</div><div style="font-size:18px;font-weight:800;color:${df>0?'var(--green)':'#e05c7c'}">${df>0?'−':'＋'}${Math.abs(df)}kg</div></div>
+  </div>`;
+}
+
+// ======== RENDER RECENT ========
+function renderRecent(records){
+  const el=document.getElementById('recentList');
+  if(!records.length){el.innerHTML='<div class="no-data">まだ記録がないぴょこ〜</div>';return;}
+  const s=[...records].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,7);
+  el.innerHTML=s.map((r,i)=>{
+    const n=s[i+1];let dh='';
+    if(n){const d=r.weight-n.weight;if(Math.abs(d)<0.05)dh=`<span class="latest-diff diff-same">±0</span>`;else if(d<0)dh=`<span class="latest-diff diff-down">▼${Math.abs(d).toFixed(1)}</span>`;else dh=`<span class="latest-diff diff-up">▲${d.toFixed(1)}</span>`;}
+    return`<div class="latest-row">
+      <span class="latest-date">${r.date.slice(5)}${r.memo?' · '+r.memo:''}</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        ${dh}<span class="latest-val">${r.weight}kg</span>
+        <button onclick="openEdit('${r.date}')" style="background:none;border:none;font-size:16px;cursor:pointer;padding:2px 4px;color:var(--muted);">✏️</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ======== EDIT ========
+let _editDate=null;
+function openEdit(date){
+  const records=loadRecords();
+  const r=records.find(x=>x.date===date);
+  if(!r)return;
+  _editDate=date;
+  const d=new Date(date);
+  document.getElementById('editDateLabel').textContent=`${date} (${['日','月','火','水','木','金','土'][d.getDay()]})`;
+  document.getElementById('editWeightInput').value=r.weight;
+  document.getElementById('editMemoInput').value=r.memo||'';
+  document.getElementById('editOverlay').classList.add('show');
+}
+function closeEdit(e){
+  if(e&&e.target!==document.getElementById('editOverlay'))return;
+  document.getElementById('editOverlay').classList.remove('show');
+  _editDate=null;
+}
+function saveEdit(){
+  if(!_editDate)return;
+  const w=parseFloat(document.getElementById('editWeightInput').value);
+  if(isNaN(w)||w<20||w>300){showToast('体重を正しく入力するぴょこ！');return;}
+  const memo=document.getElementById('editMemoInput').value.trim();
+  const records=loadRecords();
+  const idx=records.findIndex(r=>r.date===_editDate);
+  if(idx>=0)records[idx]={date:_editDate,weight:w,memo};
+  saveRecords(records);
+  document.getElementById('editOverlay').classList.remove('show');
+  _editDate=null;
+  refreshAll();
+  showToast('修正したぴょこ〜！✏️');
+}
+function deleteRecord(){
+  if(!_editDate)return;
+  if(!confirm(`${_editDate}の記録を削除するぴょこ？`))return;
+  const records=loadRecords().filter(r=>r.date!==_editDate);
+  saveRecords(records);
+  document.getElementById('editOverlay').classList.remove('show');
+  _editDate=null;
+  refreshAll();
+  showToast('削除したぴょこ〜🗑️');
+}
+
+// ======== RENDER RANK ========
+function renderRank(streak){
+  const cur=getRankIdx(streak);
+  document.getElementById('rankTimeline').innerHTML=RANKS.map((r,i)=>{
+    const st=i<cur?'done':i===cur?'current':'locked';
+    const tag=i===cur?`<span class="cur-tag">いまここ</span>`:'';
+    return`<div class="rank-step"><div class="rank-dot ${st}">${st==='done'?'✓':st==='current'?'🐸':'　'}</div>
+    <div class="rank-info"><div class="rank-title-t ${st}">${r.name}</div><div class="rank-days-t">${i===0?'スタート！':r.days+'日連続達成'}</div></div>${tag}</div>`;
+  }).join('');
+}
+
+// ======== RENDER BADGES & TROPHIES ========
+function renderBadges(records){
+  const goal=loadGoal();
+  const sd=loadStartDate();
+  document.getElementById('badgeGrid').innerHTML=BADGES.map(b=>{
+    const ok=b.check(records);
+    return`<div class="badge-item ${ok?'unlocked':'locked'}"><span class="badge-icon">${b.icon}</span><div class="badge-name">${b.name}</div><div class="badge-cond">${b.cond}</div></div>`;
+  }).join('');
+  document.getElementById('trophyList').innerHTML=TROPHIES.map(t=>{
+    const ok=t.check(records,goal,sd);
+    return`<div class="trophy-item ${ok?'unlocked':'locked'}">
+      <span class="trophy-icon">${t.icon}</span>
+      <div class="trophy-info"><div class="trophy-name">${t.name}</div><div class="trophy-cond">${t.cond}</div></div>
+      ${ok?'<span style="font-size:16px;">✨</span>':''}
+    </div>`;
+  }).join('');
+}
+
+// ======== SAVE ========
+let lastRankIdx=-1;
+let prevTrophyCount=-1;
+function saveRecord(){
+  const w=parseFloat(document.getElementById('weightInput').value);
+  if(isNaN(w)||w<20||w>300){showToast('体重を正しく入力するぴょこ！');return;}
+  const records=loadRecords();
+  const today=new Date().toISOString().slice(0,10);
+  const memo=document.getElementById('memoInput').value.trim();
+  // save start date on first record
+  if(!records.length)saveStartDate(today);
+  const ei=records.findIndex(r=>r.date===today);
+  if(ei>=0)records[ei]={date:today,weight:w,memo};
+  else records.push({date:today,weight:w,memo});
+  saveRecords(records);
+  document.getElementById('weightInput').value='';
+  document.getElementById('memoInput').value='';
+  const streak=calcStreak(records);
+  const ni=getRankIdx(streak);
+  // check rank up
+  if(lastRankIdx>=0&&ni>lastRankIdx){
+    const r=RANKS[ni];
+    showOverlay('🎊🐸🎊','✨ ご昇進、おめでとうございますぴょこ',r.name+' に昇進！',`${r.days}日連続達成…わたくし、感動いたしましたぴょこ`);
+  }
+  lastRankIdx=ni;
+  // check trophy
+  const goal=loadGoal();const sd=loadStartDate();
+  const newCount=TROPHIES.filter(t=>t.check(records,goal,sd)).length;
+  if(prevTrophyCount>=0&&newCount>prevTrophyCount){
+    const newTrophy=TROPHIES.filter(t=>t.check(records,goal,sd))[newCount-1];
+    setTimeout(()=>showOverlay(newTrophy.icon,'🏆 トロフィーを賜りましたぴょこ',newTrophy.name,newTrophy.cond+'…誠におめでとうございますぴょこ✨'),1000);
+  }
+  prevTrophyCount=newCount;
+  refreshAll();
+  showToast('記録したぴょこ〜！🐸');
+}
+
+function showOverlay(emoji,label,title,sub){
+  document.getElementById('luEmoji').textContent=emoji;
+  document.getElementById('luLabel').textContent=label;
+  document.getElementById('luTitle').textContent=title;
+  document.getElementById('luSub').textContent=sub;
+  document.getElementById('luOverlay').classList.add('show');
+}
+
+// ======== REFRESH ========
+function refreshAll(){
+  const records=loadRecords();
+  const streak=calcStreak(records);
+  window._mood='normal';
+  document.getElementById('frogSpeech').textContent=getFrogSpeech(records);
+  document.getElementById('streakNum').textContent=streak;
+  const ri=getRankIdx(streak);const rk=RANKS[ri];
+  document.getElementById('rankNameH').textContent=rk.name;
+  document.getElementById('rankProgFill').style.width=getRankProg(streak)+'%';
+  const nr=RANKS[ri+1];
+  document.getElementById('rankNextH').textContent=nr?`次：${nr.name}(${nr.days}日)`:'最高位！👑';
+  const fsv=document.getElementById('frogSvg');
+  fsv.className='frog-svg'+(window._mood==='sad'?' sad':window._mood==='excited'?' excited':'');
+  buildFrog(streak);
+  renderGoal();
+  renderRecent(records);
+  renderRank(streak);
+  renderBadges(records);
+  if(document.getElementById('panel-graph').classList.contains('active'))renderChart(records);
+}
+
+function switchTab(name){
+  const tabs=['record','graph','rank','badge'];
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',tabs[i]===name));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+  if(name==='graph')renderChart(loadRecords());
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2600);
+}
+
+// ======== INIT ========
+const _t=new Date();
+document.getElementById('todayDate').textContent=`${_t.getFullYear()}/${String(_t.getMonth()+1).padStart(2,'0')}/${String(_t.getDate()).padStart(2,'0')} (${['日','月','火','水','木','金','土'][_t.getDay()]})`;
+lastRankIdx=getRankIdx(calcStreak(loadRecords()));
+const _r=loadRecords();const _g=loadGoal();const _sd=loadStartDate();
+prevTrophyCount=TROPHIES.filter(t=>t.check(_r,_g,_sd)).length;
+refreshAll();
+</script>
+</body>
+</html>
