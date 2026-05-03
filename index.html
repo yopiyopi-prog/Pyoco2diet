@@ -4,8 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>ピョコピョコ体重記録</title>
-<link rel="icon" href="favicon.png" type="image/png">
-<link rel="apple-touch-icon" href="favicon.png">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Kaisei+Decol:wght@400;700&family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap');
 :root{
@@ -227,7 +225,9 @@ body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(
   <!-- RECORD CARD -->
   <div class="card">
     <div class="card-title">📅 今日の記録</div>
-    <div class="input-group"><span class="input-label">日付</span><div class="date-display" id="todayDate"></div></div>
+    <div class="input-group"><span class="input-label">日付</span>
+      <input class="input-field" type="date" id="todayDate" style="font-size:15px;color:var(--purple);background:var(--purple-pale);border:none;text-align:center;font-weight:700;">
+    </div>
     <div class="input-group"><span class="input-label">⚖️ 体重 (kg)</span><input class="input-field" type="number" id="weightInput" placeholder="例：55.0" step="0.1" min="20" max="300"></div>
     <div class="input-group"><span class="input-label">📝 メモ（任意）</span><input class="input-field" type="text" id="memoInput" placeholder="今日の調子など…"></div>
     <button class="save-btn" onclick="saveRecord()">ぴょこっと記録する！🐸</button>
@@ -369,13 +369,24 @@ function saveGoal(v){if(v)localStorage.setItem('pyoko_goal',v);else localStorage
 function loadStartDate(){return localStorage.getItem('pyoko_start')||null;}
 function saveStartDate(d){localStorage.setItem('pyoko_start',d);}
 
+// ======== DATE UTILS ========
+function getLocalToday(){
+  const d=new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function prevDay(dateStr){
+  const d=new Date(dateStr+'T12:00:00');
+  d.setDate(d.getDate()-1);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
 // ======== STREAK ========
 function calcStreak(records){
   if(!records.length)return 0;
   const s=[...records].sort((a,b)=>b.date.localeCompare(a.date));
-  const today=new Date().toISOString().slice(0,10);
+  const today=getLocalToday();
   let n=0,cur=today;
-  for(const r of s){if(r.date===cur){n++;const d=new Date(cur);d.setDate(d.getDate()-1);cur=d.toISOString().slice(0,10);}else if(r.date<cur)break;}
+  for(const r of s){if(r.date===cur){n++;cur=prevDay(cur);}else if(r.date<cur)break;}
   return n;
 }
 
@@ -632,7 +643,8 @@ function saveRecord(){
   const w=parseFloat(document.getElementById('weightInput').value);
   if(isNaN(w)||w<20||w>300){showToast('体重を正しく入力するぴょこ！');return;}
   const records=loadRecords();
-  const today=new Date().toISOString().slice(0,10);
+  const today=document.getElementById('todayDate').value;
+  if(!today){showToast('日付を選んでくださいぴょこ！');return;}
   const memo=document.getElementById('memoInput').value.trim();
   // save start date on first record
   if(!records.length)saveStartDate(today);
@@ -708,7 +720,7 @@ function showToast(msg){
 
 // ======== INIT ========
 const _t=new Date();
-document.getElementById('todayDate').textContent=`${_t.getFullYear()}/${String(_t.getMonth()+1).padStart(2,'0')}/${String(_t.getDate()).padStart(2,'0')} (${['日','月','火','水','木','金','土'][_t.getDay()]})`;
+document.getElementById('todayDate').value=getLocalToday();
 lastRankIdx=getRankIdx(calcStreak(loadRecords()));
 const _r=loadRecords();const _g=loadGoal();const _sd=loadStartDate();
 prevTrophyCount=TROPHIES.filter(t=>t.check(_r,_g,_sd)).length;
